@@ -7,13 +7,15 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private val calorieEntries = mutableListOf<CalorieEntry>()
-    private lateinit var adapter: WishlistAdapter
+    private lateinit var adapter: CalorieAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,7 +23,7 @@ class MainActivity : AppCompatActivity() {
 
         // Setup RecyclerView
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
-        adapter = WishlistAdapter(calorieEntries)
+        adapter = CalorieAdapter(calorieEntries)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
@@ -30,10 +32,29 @@ class MainActivity : AppCompatActivity() {
         btnAddItem.setOnClickListener {
             showAddCalorieDialog()
         }
+
+        campgroundsRecyclerView = findViewById(R.id.tvCalories)
+
+        val calorieAdapter = CalorieAdapter(foodName, campgrounds)
+        campgroundsRecyclerView.adapter = campgroundAdapter
+
+        lifecycleScope.launch {
+            (application as CalorieApplication).db.calorieDao().getAll().collect { databaseList ->
+                databaseList.map { entity ->
+                    CalorieEntry(
+                        entity.foodName,
+                        entity.calories
+                    )
+                }.also { mappedList ->
+                    calorieEntries.clear()
+                    calorieEntries.addAll(mappedList)
+                    CalorieAdapter.notifyDataSetChanged()
+                }
+            }
+        }
     }
 
     private fun showAddCalorieDialog() {
-        // Update R.layout.popup to whatever your dialog XML file is named
         val dialogView = LayoutInflater.from(this).inflate(R.layout.popup, null)
 
         val etFoodName = dialogView.findViewById<EditText>(R.id.etFoodName)

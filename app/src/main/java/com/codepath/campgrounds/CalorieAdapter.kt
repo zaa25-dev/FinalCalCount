@@ -6,9 +6,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class WishlistAdapter(
+class CalorieAdapter(
     private val entries: MutableList<CalorieEntry>
-) : RecyclerView.Adapter<WishlistAdapter.CalorieViewHolder>() {
+) : RecyclerView.Adapter<CalorieAdapter.CalorieViewHolder>() {
 
     class CalorieViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvFoodName: TextView = itemView.findViewById(R.id.tvFoodName)
