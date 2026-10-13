@@ -1,127 +1,71 @@
 package com.codepath.campgrounds
 
 import android.os.Bundle
-import android.util.Log
+import android.view.LayoutInflater
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.codepath.campgrounds.databinding.ActivityMainBinding
-import com.codepath.asynchttpclient.AsyncHttpClient
-import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler
-import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import okhttp3.Headers
-import org.json.JSONException
-
-fun createJson() = Json {
-    isLenient = true
-    ignoreUnknownKeys = true
-    useAlternativeNames = false
-}
-
-private const val TAG = "CampgroundsMain/"
-private val PARKS_API_KEY = BuildConfig.API_KEY
-private val CAMPGROUNDS_URL =
-    "https://developer.nps.gov/api/v1/campgrounds?api_key=${PARKS_API_KEY}"
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var campgroundsRecyclerView: RecyclerView
-    private lateinit var binding: ActivityMainBinding
 
-    // TODO: Create campgrounds list
-    private val campgrounds = mutableListOf<Campground>()
+    private val calorieEntries = mutableListOf<CalorieEntry>()
+    private lateinit var adapter: WishlistAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        val view = binding.root
-        setContentView(view)
+        // Setup RecyclerView
+        val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
+        adapter = WishlistAdapter(calorieEntries)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
 
-        campgroundsRecyclerView = findViewById(R.id.campgrounds)
-
-        // TODO: Set up CampgroundAdapter with campgrounds
-        val campgroundAdapter = CampgroundAdapter(this, campgrounds)
-        campgroundsRecyclerView.adapter = campgroundAdapter
-
-        lifecycleScope.launch {
-            (application as CampgroundApplication).db.campgroundDao().getAll().collect { databaseList ->
-                databaseList.map { entity ->
-                    Campground(
-                        entity.name,
-                        entity.description,
-                        entity.latLong,
-                        listOf(CampgroundImage(entity.imageUrl, null))
-                    )
-                }.also { mappedList ->
-                    campgrounds.clear()
-                    campgrounds.addAll(mappedList)
-                    campgroundAdapter.notifyDataSetChanged()
-                }
-            }
+        // "Log Food" Button
+        val btnAddItem: Button = findViewById(R.id.btnAddItem)
+        btnAddItem.setOnClickListener {
+            showAddCalorieDialog()
         }
+    }
 
+    private fun showAddCalorieDialog() {
+        // Update R.layout.popup to whatever your dialog XML file is named
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.popup, null)
 
-        campgroundsRecyclerView.layoutManager = LinearLayoutManager(this).also {
-            val dividerItemDecoration = DividerItemDecoration(this, it.orientation)
-            campgroundsRecyclerView.addItemDecoration(dividerItemDecoration)
+        val etFoodName = dialogView.findViewById<EditText>(R.id.etFoodName)
+        val etCalories = dialogView.findViewById<EditText>(R.id.etCalories)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("Submit", null)
+            .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
+            .create()
+
+        dialog.show()
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val foodName = etFoodName.text.toString().trim()
+            val caloriesText = etCalories.text.toString().trim()
+
+            if (foodName.isEmpty() || caloriesText.isEmpty()) {
+                Toast.makeText(this, "Please fill in both fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val calories = caloriesText.toIntOrNull()
+            if (calories == null) {
+                Toast.makeText(this, "Please enter a valid number for calories", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val newEntry = CalorieEntry(foodName, calories)
+            adapter.addItem(newEntry)
+
+            dialog.dismiss()
         }
-
-        val client = AsyncHttpClient()
-        client.get(CAMPGROUNDS_URL, object : JsonHttpResponseHandler() {
-            override fun onFailure(
-                statusCode: Int,
-                headers: Headers?,
-                response: String?,
-                throwable: Throwable?
-            ) {
-                Log.e(TAG, "Failed to fetch campgrounds: $statusCode")
-            }
-
-            override fun onSuccess(statusCode: Int, headers: Headers, json: JSON) {
-                Log.i(TAG, "Successfully fetched campgrounds: $json")
-                try {
-                    // TODO: Create the parsedJSON
-                    val parsedJson = createJson().decodeFromString(
-                        CampgroundResponse.serializer(),
-                        json.jsonObject.toString()
-                    )
-
-                    // TODO: Do something with the returned json (contains campground information)
-                    parsedJson.data?.let { list ->
-                        campgrounds.addAll(list)
-                    }
-
-                    parsedJson.data?.let { list ->
-                        lifecycleScope.launch(IO) {
-                            (application as CampgroundApplication).db.campgroundDao().deleteAll()
-                            (application as CampgroundApplication).db.campgroundDao().insertAll(list.map {
-                                CampgroundEntity(
-                                    name = it.name,
-                                    description = it.description,
-                                    latLong = it.latLong,
-                                    imageUrl = it.imageUrl
-                                )
-                            })
-                        }
-                    }
-
-                    // TODO: Save the campgrounds and reload the screen
-                    parsedJson.data?.let { list ->
-                        campgrounds.addAll(list)
-
-                        // TODO: Notify the adapter that the dataset has changed
-                        campgroundAdapter.notifyDataSetChanged()
-                    }
-
-                } catch (e: JSONException) {
-                    Log.e(TAG, "Exception: $e")
-                }
-            }
-
-        })
     }
 }
