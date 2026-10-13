@@ -1,4 +1,4 @@
-# Android Project 5 - *Name of App Here*
+# Android Project 5 - CalCount
 
 Submitted by: Zahid Amin
 
