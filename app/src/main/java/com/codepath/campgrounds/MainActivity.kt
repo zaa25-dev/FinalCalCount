@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -27,30 +28,25 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        // "Log Food" Button
-        val btnAddItem: Button = findViewById(R.id.btnAddItem)
-        btnAddItem.setOnClickListener {
-            showAddCalorieDialog()
-        }
-
-        campgroundsRecyclerView = findViewById(R.id.tvCalories)
-
-        val calorieAdapter = CalorieAdapter(foodName, campgrounds)
-        campgroundsRecyclerView.adapter = campgroundAdapter
-
         lifecycleScope.launch {
             (application as CalorieApplication).db.calorieDao().getAll().collect { databaseList ->
                 databaseList.map { entity ->
                     CalorieEntry(
-                        entity.foodName,
-                        entity.calories
+                        entity.foodName ?: "",
+                        entity.calories ?: 0
                     )
                 }.also { mappedList ->
                     calorieEntries.clear()
                     calorieEntries.addAll(mappedList)
-                    CalorieAdapter.notifyDataSetChanged()
+                    adapter.notifyDataSetChanged()
                 }
             }
+        }
+
+        // "Log Food" Button
+        val btnAddItem: Button = findViewById(R.id.btnAddItem)
+        btnAddItem.setOnClickListener {
+            showAddCalorieDialog()
         }
     }
 
@@ -83,8 +79,14 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val newEntry = CalorieEntry(foodName, calories)
-            adapter.addItem(newEntry)
+            lifecycleScope.launch(Dispatchers.IO) {
+                (application as CalorieApplication).db.calorieDao().insert(
+                    CalEntity(
+                        foodName = foodName,
+                        calories = calories
+                    )
+                )
+            }
 
             dialog.dismiss()
         }

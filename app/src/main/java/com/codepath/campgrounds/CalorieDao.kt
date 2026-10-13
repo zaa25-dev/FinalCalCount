@@ -11,7 +11,10 @@ interface CalorieDao {
     fun getAll(): Flow<List<CalEntity>>
 
     @Insert
-    fun insertAll(campgrounds: List<CalEntity>)
+    fun insert(entry: CalEntity)
+
+    @Insert
+    fun insertAll(entries: List<CalEntity>)
 
     @Query("DELETE FROM calorie_table")
     fun deleteAll()
