@@ -31,7 +31,13 @@ The following **additional** features are implemented:
 
 Here's a walkthrough of implemented user stories:
 
-<img src='http://i.imgur.com/link/to/your/gif/file.gif' title='Video Walkthrough' width='' alt='Video Walkthrough' />
+Adding items to the list
+<img width="540" height="1200" alt="Adding Items" src="https://github.com/user-attachments/assets/5c71ec7c-992a-49d3-9eb6-96f6cf4a4d38" />
+
+Reopening the app and the items are still there. 
+<img width="540" height="1200" alt="App Reopening" src="https://github.com/user-attachments/assets/2ba1d468-8c8d-48ce-9020-20dd8826bf75" />
+
+
 
 <!-- Replace this with whatever GIF tool you used! -->
 GIF created with ...  
